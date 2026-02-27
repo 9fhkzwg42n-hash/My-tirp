@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+
+  <head>
+    <meta charset="UTF-8">
+    <title>Untitled</title>
+    
+
+  </head>
+    
+  <body>
+  <!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Global Travel Manager 2026</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root { --apple-blue: #007AFF; --main-pink: #ff758c; --bg: #f2f2f7; }
+        body { background-color: var(--bg); font-family: -apple-system, sans-serif; padding-bottom: 100px; }
+        .editable { border: 1px solid transparent; transition: 0.2s; min-height: 24px; }
+        .editable:focus { outline: none; background: #fff; border-radius: 4px; box-shadow: 0 0 0 2px #ffb6c1; }
+        
+        /* 旅行列表主介面 (Portal) */
+        .trip-selector-wrap { background: #fff; padding: 20px 15px; border-bottom: 1px solid #ddd; overflow-x: auto; white-space: nowrap; display: flex; gap: 15px; }
+        .trip-card { 
+            display: inline-block; min-width: 140px; padding: 15px; border-radius: 18px; 
+            background: #f8f9fa; border: 2px solid transparent; cursor: pointer; position: relative;
+        }
+        .trip-card.active { border-color: var(--apple-blue); background: #eef7ff; }
+        .trip-card .delete-trip { position: absolute; top: 5px; right: 5px; font-size: 0.7rem; color: #ccc; }
+        .add-trip-btn { min-width: 140px; border: 2px dashed #ccc; border-radius: 18px; display: flex; align-items: center; justify-content: center; color: #888; cursor: pointer; }
+
+        /* 原有樣式整合 */
+        .card { border: none; border-radius: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.06); margin-bottom: 20px; overflow: hidden; }
+        .header-card { background: linear-gradient(180deg, #4facfe 0%, #007AFF 100%) !important; color: white; border-radius: 0 0 30px 30px; padding: 30px 20px; }
+        .weather-info { background: rgba(255,255,255,0.15); backdrop-filter: blur(15px); border-radius: 20px; padding: 15px; margin-top: 15px; border: 1px solid rgba(255,255,255,0.1); }
+        .food-day-title { color: #dc3545; font-weight: bold; border-bottom: 1px solid #eee; padding-bottom: 10px; margin-bottom: 15px; display: flex; justify-content: space-between; }
+        .food-slot { display: flex; align-items: flex-start; margin-bottom: 12px; }
+        .food-icon { width: 35px; color: #f39c12; }
+        .food-label { font-size: 0.75rem; color: #999; font-weight: bold; }
+        .nav-pills .nav-link { color: #666; border-radius: 50px; font-size: 0.85rem; padding: 8px 4px; }
+        .nav-pills .nav-link.active { background-color: var(--main-pink); color: white; }
+        .map-btn { background-color: white; color: var(--apple-blue); border: 1px solid var(--apple-blue); border-radius: 50px; font-size: 0.8rem; font-weight: 600; padding: 8px; text-decoration: none; display: block; text-align: center; }
+        .img-slot { width: 100%; border-radius: 12px; margin-top: 10px; display: none; border: 1px solid #ddd; }
+        .save-tag { position: fixed; top: 10px; right: 10px; font-size: 0.6rem; background: rgba(0,0,0,0.5); color: #fff; padding: 2px 8px; border-radius: 10px; z-index: 9999; }
+    </style>
+</head>
+<body>
+
+<div id="save-tag" class="save-tag">● 系統就緒</div>
+
+<div class="trip-selector-wrap" id="trip-bar">
+    <div class="add-trip-btn" onclick="createNewTrip()">+ 新增旅行</div>
+</div>
+
+<div id="main-content">
+    <div class="header-card mb-4 shadow text-center">
+        <h4 class="fw-bold editable" id="m-title" contenteditable="true">請選擇或新增旅行</h4>
+        <div class="weather-info container">
+            <div class="row align-items-center">
+                <div class="col-5">
+                    <div id="w-temp" style="font-size: 3.5rem; font-weight: 200; line-height: 1;">--°</div>
+                    <div id="w-desc" class="small">讀取中...</div>
+                </div>
+                <div class="col-7 text-start border-start border-white border-opacity-25 ps-4">
+                    <div class="small"><i class="fas fa-umbrella me-1"></i> 降雨: <span id="w-pop">--%</span></div>
+                    <div class="small"><i class="fas fa-droplet me-1"></i> 濕度: <span id="w-hum">--%</span></div>
+                </div>
+            </div>
+        </div>
+        <a id="apple-weather-link" href="#" target="_blank" class="btn btn-sm mt-3" style="background: rgba(255,255,255,0.2); color:white; border-radius: 50px;">在 Apple 天氣開啟</a>
+    </div>
+
+    <div class="container">
+        <ul class="nav nav-pills nav-fill mb-4 p-1 bg-white rounded-pill shadow-sm">
+            <li class="nav-item"><button class="nav-link active" data-bs-toggle="pill" data-bs-target="#itinerary">行程</button></li>
+            <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#stay">住宿</button></li>
+            <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#transport">交通</button></li>
+            <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#food">美食</button></li>
+        </ul>
+
+        <div class="tab-content">
+            <div class="tab-pane fade show active" id="itinerary">
+                <div id="day-list"></div>
+                <button class="btn btn-primary w-100 rounded-pill mt-3" onclick="addDay()">+ 新增行程天數</button>
+            </div>
+            <div class="tab-pane fade" id="stay">
+                <div id="stay-list"></div>
+                <button class="btn btn-outline-primary w-100 rounded-pill" onclick="addStay()">+ 新增住宿地點</button>
+            </div>
+            <div class="tab-pane fade" id="transport">
+                <div class="card p-3">
+                    <h6 class="fw-bold">交通地圖備註</h6>
+                    <input type="file" class="form-control form-control-sm mb-2" onchange="previewImg(this, 't-map')">
+                    <img id="t-map" class="img-slot" src="#">
+                </div>
+            </div>
+            <div class="tab-pane fade" id="food">
+                <div id="food-list"></div>
+                <button class="btn btn-outline-danger w-100 rounded-pill" onclick="addFoodDay()">+ 新增每日美食</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let trips = [];
+    let currentTripId = null;
+
+    // --- 初始化系統 ---
+    window.onload = () => {
+        const savedTrips = localStorage.getItem('my_travel_portal_v1');
+        if (savedTrips) {
+            trips = JSON.parse(savedTrips);
+            renderTripBar();
+            if (trips.length > 0) switchTrip(trips[0].id);
+        }
+        updateWeather();
+    };
+
+    // --- 旅行清單功能 ---
+    function createNewTrip() {
+        const name = prompt("請輸入新旅行的名稱 (例如: 東京 2026):", "我的新旅行");
+        if (!name) return;
+        const newTrip = {
+            id: Date.now(),
+            name: name,
+            itinerary: '',
+            stay: '',
+            food: '',
+            subway: '',
+            weatherLoc: 'Tokyo'
+        };
+        trips.push(newTrip);
+        renderTripBar();
+        switchTrip(newTrip.id);
+        saveAll();
+    }
+
+    function renderTripBar() {
+        const bar = document.getElementById('trip-bar');
+        const addBtn = bar.querySelector('.add-trip-btn');
+        bar.querySelectorAll('.trip-card').forEach(c => c.remove());
+        
+        trips.forEach(trip => {
+            const div = document.createElement('div');
+            div.className = `trip-card ${trip.id === currentTripId ? 'active' : ''}`;
+            div.innerHTML = `
+                <i class="fas fa-times-circle delete-trip" onclick="deleteTrip(${trip.id}, event)"></i>
+                <div class="small fw-bold">${trip.name}</div>
+                <div style="font-size: 0.6rem; color:#999;">ID: ${trip.id.toString().slice(-4)}</div>
+            `;
+            div.onclick = () => switchTrip(trip.id);
+            bar.insertBefore(div, addBtn);
+        });
+    }
+
+    function switchTrip(id) {
+        if (currentTripId) saveCurrentToData(); // 切換前儲存舊的
+        currentTripId = id;
+        const trip = trips.find(t => t.id === id);
+        
+        document.getElementById('m-title').innerText = trip.name;
+        document.getElementById('day-list').innerHTML = trip.itinerary || '';
+        document.getElementById('stay-list').innerHTML = trip.stay || '';
+        document.getElementById('food-list').innerHTML = trip.food || '';
+        document.getElementById('t-map').src = trip.subway || '#';
+        document.getElementById('t-map').style.display = (trip.subway && trip.subway.length > 100) ? 'block' : 'none';
+        
+        renderTripBar();
+        bind();
+    }
+
+    function deleteTrip(id, event) {
+        event.stopPropagation();
+        if (!confirm("確定刪除此行程？所有資料將消失。")) return;
+        trips = trips.filter(t => t.id !== id);
+        if (currentTripId === id) currentTripId = trips.length > 0 ? trips[0].id : null;
+        renderTripBar();
+        if (currentTripId) switchTrip(currentTripId);
+        saveAll();
+    }
+
+    // --- 資料同步 ---
+    function saveCurrentToData() {
+        if (!currentTripId) return;
+        const index = trips.findIndex(t => t.id === currentTripId);
+        trips[index].name = document.getElementById('m-title').innerText;
+        trips[index].itinerary = document.getElementById('day-list').innerHTML;
+        trips[index].stay = document.getElementById('stay-list').innerHTML;
+        trips[index].food = document.getElementById('food-list').innerHTML;
+        trips[index].subway = document.getElementById('t-map').src;
+    }
+
+    function saveAll() {
+        saveCurrentToData();
+        localStorage.setItem('my_travel_portal_v1', JSON.stringify(trips));
+        document.getElementById('save-tag').innerText = "● 已同步至雲端";
+        setTimeout(() => document.getElementById('save-tag').innerText = "● 待機中", 1500);
+    }
+
+    // --- 內容功能按鈕 (與之前邏輯相同) ---
+    function addDay() {
+        const div = document.createElement('div');
+        div.className = 'card day-card p-3';
+        div.innerHTML = `<div class="food-day-title"><span class="editable" contenteditable="true">新日期</span><i class="fas fa-trash text-muted small" onclick="this.closest('.card').remove(); saveAll();"></i></div><div class="time-grid mt-2"></div><div class="p-2 text-center small text-muted bg-light mt-2" onclick="addRow(this)">+ 新增時間項目</div><div class="mt-3"><a href="#" class="map-btn">開啟 Google Maps</a></div>`;
+        document.getElementById('day-list').appendChild(div); bind(); saveAll();
+    }
+
+    function addRow(btn) {
+        const grid = btn.previousElementSibling;
+        const row = document.createElement('div');
+        row.className = 'time-row d-flex border-bottom';
+        row.innerHTML = `<div class="time-box p-2 border-end" style="width:70px" contenteditable="true">00:00</div><div class="content-box p-2 flex-grow-1 editable" contenteditable="true">內容...</div>`;
+        grid.appendChild(row); bind(); saveAll();
+    }
+
+    function addStay() {
+        const div = document.createElement('div');
+        div.className = 'card p-4 stay-item';
+        div.innerHTML = `<div class="food-day-title"><span class="text-primary"><i class="fas fa-bed me-2"></i>住宿資料</span><i class="fas fa-times text-muted" onclick="this.closest('.card').remove(); saveAll();"></i></div><div class="info-label">住宿名稱</div><div class="editable fw-bold" contenteditable="true">新飯店</div><div class="info-label">地址</div><div class="editable small" contenteditable="true">地址...</div><input type="file" class="form-control form-control-sm mt-1" onchange="previewImg(this)"><img class="img-slot" src="#">`;
+        document.getElementById('stay-list').appendChild(div); bind(); saveAll();
+    }
+
+    function addFoodDay() {
+        const div = document.createElement('div');
+        div.className = 'card p-4 food-day-item';
+        div.innerHTML = `<div class="food-day-title"><span class="editable" contenteditable="true">新日期美食</span><i class="fas fa-trash text-muted small" onclick="this.closest('.card').remove(); saveAll();"></i></div><div class="food-slot"><div class="food-icon"><i class="fas fa-coffee"></i></div><div class="food-content"><div class="food-label">早餐</div><div class="editable" contenteditable="true">...</div></div></div><div class="food-slot"><div class="food-icon"><i class="fas fa-sun"></i></div><div class="food-content"><div class="food-label">午餐</div><div class="editable" contenteditable="true">...</div></div></div><div class="food-slot"><div class="food-icon"><i class="fas fa-moon"></i></div><div class="food-content"><div class="food-label">晚餐</div><div class="editable" contenteditable="true">...</div></div></div>`;
+        document.getElementById('food-list').appendChild(div); bind(); saveAll();
+    }
+
+    function previewImg(input, targetId) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const img = targetId ? document.getElementById(targetId) : input.nextElementSibling;
+            img.src = e.target.result; img.style.display = 'block'; saveAll();
+        };
+        reader.readAsDataURL(input.files[0]);
+    }
+
+    async function updateWeather() {
+        const apiKey = "b71f985b6781254884f333796d84a789";
+        try {
+            const res = await fetch(`https://api.openweathermap.org/data/2.5/weather?q=Tokyo&units=metric&appid=${apiKey}&lang=zh_tw`);
+            const data = await res.json();
+            document.getElementById('w-temp').innerText = Math.round(data.main.temp) + "°";
+            document.getElementById('w-desc').innerText = data.weather[0].description;
+            document.getElementById('w-pop').innerText = data.clouds.all + "%";
+            document.getElementById('w-hum').innerText = data.main.humidity + "%";
+        } catch (e) { }
+    }
+
+    function bind() { document.querySelectorAll('.editable').forEach(el => el.oninput = saveAll); }
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
+    
+  </body>
+  
+</html>
